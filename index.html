@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Météo locale - Laruscade</title>
+  <title>Météo locale</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;700&display=swap" rel="stylesheet">
   <style>
     body {
@@ -37,10 +37,24 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
       min-width: 100px;
     }
+    select {
+      font-size: 1rem;
+      padding: 5px 10px;
+      margin-top: 20px;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
-  <h1>Météo à Laruscade</h1>
+  <h1>Météo locale</h1>
+
+  <label for="citySelect">Choisir une ville :</label>
+  <select id="citySelect">
+    <option value="Laruscade,FR">Laruscade</option>
+    <option value="Yviers,FR">Yviers</option>
+    <option value="Saint-Pardoux-la-Rivière,FR">Saint-Pardoux-la-Rivière</option>
+  </select>
+
   <div id="weather">
     <div id="current"></div>
     <h2>Prévisions</h2>
@@ -49,7 +63,12 @@
 
   <script>
     const apiKey = "dcb92f1676665e45def40c9e9afedd87";
-    const city = "Laruscade,FR";
+    let city = document.getElementById("citySelect").value;
+
+    document.getElementById("citySelect").addEventListener("change", () => {
+      city = document.getElementById("citySelect").value;
+      fetchWeather();
+    });
 
     async function fetchWeather() {
       const currentRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&lang=fr&appid=${apiKey}`);
@@ -66,7 +85,7 @@
       const container = document.getElementById("current");
       const html = `
         <div>
-          <h2>Actuellement</h2>
+          <h2>Actuellement à ${data.name}</h2>
           <p><strong>${data.main.temp.toFixed(1)}°C</strong></p>
           <p>${data.weather[0].description}</p>
           <img src="http://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png" alt="">
