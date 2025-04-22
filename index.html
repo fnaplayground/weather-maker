@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Météo locale</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -90,4 +90,211 @@
   </style>
 </head>
 <body>
-<!-- le reste du code reste inchangé -->
+  <h1>Météo locale</h1>
+  <div id="controls">
+    <label for="citySelect">Ville :</label>
+    <select id="citySelect">
+      <option value="Laruscade,FR">Laruscade</option>
+      <option value="Yviers,FR">Yviers</option>
+      <option value="Saint-Pardoux-la-Rivière,FR">Saint-Pardoux-la-Rivière</option>
+    </select>
+    <label for="sourceSelect">Source :</label>
+    <select id="sourceSelect">
+      <option value="weatherapi">WeatherAPI</option>
+      <option value="openweathermap">OpenWeatherMap</option>
+    </select>
+    <button id="forceSwitchBtn">Forcer la bascule</button>
+  </div>
+
+  <div id="weather-animation"></div>
+  <div id="current"></div>
+  <h2>Prévisions</h2>
+  <div id="forecast" class="forecast"></div>
+  <h2>Tendance horaire</h2>
+  <div id="hourly" class="hourly"></div>
+  <canvas id="tempChart"></canvas>
+
+  <script>
+    const weatherApiKey = "95fb657e876f4152943183142252204";
+    const owmKey = "dcb92f1676665e45def40c9e9afedd87";
+
+    function windDirection(deg) {
+      const dirs = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
+      return dirs[Math.round(deg / 45) % 8];
+    }
+
+    function drawChart(labels, temps) {
+      const ctx = document.getElementById("tempChart").getContext("2d");
+      if (window.myChart) window.myChart.destroy();
+      window.myChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label: "Température (°C)",
+            data: temps,
+            borderColor: "#fff",
+            backgroundColor: "rgba(255,255,255,0.3)",
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { labels: { color: "#fff" } }
+          },
+          scales: {
+            x: { ticks: { color: "#fff" } },
+            y: { ticks: { color: "#fff" } }
+          }
+        }
+      });
+    }
+
+    function renderWeather(data) {
+      const current = data.current;
+      const forecast = data.forecast.forecastday;
+
+      document.getElementById("current").innerHTML = `
+        <div>
+          <h2>Actuellement à ${data.location.name}</h2>
+          <p><strong>${current.temp_c.toFixed(1)}°C</strong></p>
+          <p>${current.condition.text}</p>
+          <p>Vent : ${current.wind_kph.toFixed(1)} km/h (${windDirection(current.wind_degree)})</p>
+          <img src="https:${current.condition.icon}" alt="">
+        </div>
+      `;
+
+      const forecastContainer = document.getElementById("forecast");
+      forecastContainer.innerHTML = "";
+      forecast.forEach(day => {
+        const date = new Date(day.date);
+        const weekday = date.toLocaleDateString("fr-FR", { weekday: "long" });
+        forecastContainer.innerHTML += `
+          <div class="day">
+            <h3>${weekday}</h3>
+            <img src="https:${day.day.condition.icon}" alt="">
+            <p>${day.day.avgtemp_c.toFixed(1)}°C</p>
+            <p>${day.day.condition.text}</p>
+            <p>Vent : ${day.day.maxwind_kph.toFixed(1)} km/h</p>
+          </div>
+        `;
+      });
+
+      const hourlyContainer = document.getElementById("hourly");
+      hourlyContainer.innerHTML = "";
+      const hours = forecast[0].hour.slice(0, 6);
+      hours.forEach(hour => {
+        const hourTime = new Date(hour.time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+        hourlyContainer.innerHTML += `
+          <div class="hour">
+            <h3>${hourTime}</h3>
+            <img src="https:${hour.condition.icon}" alt="">
+            <p>${hour.temp_c.toFixed(1)}°C</p>
+            <p>${hour.condition.text}</p>
+            <p>Vent : ${hour.wind_kph.toFixed(1)} km/h (${windDirection(hour.wind_degree)})</p>
+          </div>
+        `;
+      });
+
+      drawChart(
+        hours.map(h => new Date(h.time).toLocaleTimeString("fr-FR", { hour: "2-digit" })),
+        hours.map(h => h.temp_c)
+      );
+    }
+
+    function renderOWM(current, forecast) {
+      const forecastContainer = document.getElementById("forecast");
+      const hourlyContainer = document.getElementById("hourly");
+      document.getElementById("current").innerHTML = `
+        <div>
+          <h2>Actuellement à ${current.name}</h2>
+          <p><strong>${current.main.temp.toFixed(1)}°C</strong></p>
+          <p>${current.weather[0].description}</p>
+          <p>Vent : ${(current.wind.speed * 3.6).toFixed(1)} km/h (${windDirection(current.wind.deg)})</p>
+          <img src="http://openweathermap.org/img/wn/${current.weather[0].icon}@2x.png" alt="">
+        </div>
+      `;
+
+      forecastContainer.innerHTML = "";
+      const grouped = {};
+      forecast.list.forEach(e => {
+        const d = new Date(e.dt * 1000);
+        const day = d.toLocaleDateString("fr-FR", { weekday: "long" });
+        if (!grouped[day]) grouped[day] = [];
+        grouped[day].push(e);
+      });
+      Object.entries(grouped).slice(0, 3).forEach(([day, list]) => {
+        const mid = list[Math.floor(list.length / 2)];
+        forecastContainer.innerHTML += `
+          <div class="day">
+            <h3>${day}</h3>
+            <img src="http://openweathermap.org/img/wn/${mid.weather[0].icon}@2x.png" alt="">
+            <p>${mid.main.temp.toFixed(1)}°C</p>
+            <p>${mid.weather[0].description}</p>
+            <p>Vent : ${(mid.wind.speed * 3.6).toFixed(1)} km/h (${windDirection(mid.wind.deg)})</p>
+          </div>
+        `;
+      });
+
+      hourlyContainer.innerHTML = "";
+      forecast.list.slice(0, 6).forEach(e => {
+        const hour = new Date(e.dt * 1000).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+        hourlyContainer.innerHTML += `
+          <div class="hour">
+            <h3>${hour}</h3>
+            <img src="http://openweathermap.org/img/wn/${e.weather[0].icon}@2x.png" alt="">
+            <p>${e.main.temp.toFixed(1)}°C</p>
+            <p>${e.weather[0].description}</p>
+            <p>Vent : ${(e.wind.speed * 3.6).toFixed(1)} km/h (${windDirection(e.wind.deg)})</p>
+          </div>
+        `;
+      });
+
+      drawChart(
+        forecast.list.slice(0, 6).map(e => new Date(e.dt * 1000).toLocaleTimeString("fr-FR", { hour: "2-digit" })),
+        forecast.list.slice(0, 6).map(e => e.main.temp)
+      );
+    }
+
+    async function fetchWeather() {
+      const city = document.getElementById("citySelect").value;
+      let source = document.getElementById("sourceSelect").value;
+      try {
+        if (source === "weatherapi") {
+          const res = await fetch(`https://api.weatherapi.com/v1/forecast.json?key=${weatherApiKey}&q=${city}&days=3&lang=fr&aqi=no&alerts=no`);
+          const data = await res.json();
+          if (!data || !data.location) throw new Error("WeatherAPI failed");
+          renderWeather(data);
+        } else {
+          throw new Error("Skip to OpenWeatherMap");
+        }
+      } catch (err) {
+        console.warn("WeatherAPI indisponible. Bascule vers OpenWeatherMap.", err);
+        source = "openweathermap";
+        document.getElementById("sourceSelect").value = source;
+        try {
+          const currentRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&lang=fr&appid=${owmKey}`);
+          const forecastRes = await fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=metric&lang=fr&appid=${owmKey}`);
+          const current = await currentRes.json();
+          const forecast = await forecastRes.json();
+          renderOWM(current, forecast);
+        } catch (e) {
+          document.getElementById("current").innerHTML = `<p>Impossible de récupérer les données météo.</p>`;
+          console.error("Échec complet", e);
+        }
+      }
+    }
+
+    document.getElementById("citySelect").addEventListener("change", fetchWeather);
+    document.getElementById("sourceSelect").addEventListener("change", fetchWeather);
+    document.getElementById("forceSwitchBtn").addEventListener("click", () => {
+      const select = document.getElementById("sourceSelect");
+      select.value = select.value === "weatherapi" ? "openweathermap" : "weatherapi";
+      fetchWeather();
+    });
+
+    fetchWeather();
+  </script>
+</body>
+</html>

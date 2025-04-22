@@ -1,0 +1,51 @@
+// dashboard-meteo.test.js
+// À exécuter avec Jest + jsdom ou Playwright
+
+const { JSDOM } = require("jsdom");
+const fs = require("fs");
+const path = require("path");
+
+const html = fs.readFileSync(path.resolve(__dirname, "index.html"), "utf8");
+
+let dom, document;
+
+describe("Dashboard Météo", () => {
+  beforeEach(() => {
+    dom = new JSDOM(html, { runScripts: "dangerously", resources: "usable" });
+    document = dom.window.document;
+  });
+
+  test("Structure de base présente", () => {
+    expect(document.querySelector("#citySelect")).toBeTruthy();
+    expect(document.querySelector("#sourceSelect")).toBeTruthy();
+    expect(document.querySelector("#current")).toBeTruthy();
+    expect(document.querySelector("#forecast")).toBeTruthy();
+    expect(document.querySelector("#hourly")).toBeTruthy();
+    expect(document.querySelector("canvas#tempChart")).toBeTruthy();
+  });
+
+  test("Menu déroulant contient les villes attendues", () => {
+    const options = [...document.querySelectorAll("#citySelect option")].map(o => o.value);
+    expect(options).toContain("Laruscade,FR");
+    expect(options).toContain("Yviers,FR");
+    expect(options).toContain("Saint-Pardoux-la-Rivière,FR");
+  });
+
+  test("Fonction windDirection retourne bonne direction", () => {
+    const { window } = dom;
+    expect(window.windDirection(0)).toBe("N");
+    expect(window.windDirection(45)).toBe("NE");
+    expect(window.windDirection(90)).toBe("E");
+    expect(window.windDirection(180)).toBe("S");
+    expect(window.windDirection(270)).toBe("O");
+    expect(window.windDirection(315)).toBe("NO");
+  });
+
+  test("Bouton de bascule est présent et interactif", () => {
+    const button = document.querySelector("#forceSwitchBtn");
+    expect(button).toBeTruthy();
+    expect(button.textContent).toMatch(/forcer/i);
+  });
+
+  // Pour aller plus loin : ajouter des tests d'intégration avec mock de fetch
+});
