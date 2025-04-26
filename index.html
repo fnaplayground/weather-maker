@@ -1,104 +1,91 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Météo famille <3</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    html, body {
-      height: auto;
-      min-height: 100vh;
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
     body {
+      margin: 0;
       font-family: 'Inter', sans-serif;
       background: linear-gradient(to bottom, #5dade2, #aed6f1);
       color: #fff;
       text-align: center;
+      min-height: 100vh;
       padding: 10px;
-      transition: background 0.5s ease;
-      position: relative;
-    }
-    h1, h2 {
-      margin-top: 1rem;
     }
     .forecast, .hourly {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
       gap: 10px;
-      justify-content: center;
     }
     .day, .hour {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255,255,255,0.1);
       padding: 6px;
       border-radius: 10px;
-      font-size: 0.85rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
     }
     .day img, .hour img {
       max-width: 50px;
-      height: auto;
     }
-    canvas {
-      max-width: 100%;
-      margin-top: 1rem;
+    .icon-text {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 0.8rem;
+    }
+    .small-icon {
+      width: 14px;
+      height: 14px;
     }
   </style>
 </head>
 <body>
-  <h1>Météo famille <3</h1>
-  <div id="controls">
-    <label for="citySelect">Ville :</label>
-<select id="citySelect">
-  <option value="Laruscade,FR">Laruscade</option>
-  <option value="Yviers,FR">Yviers</option>
-  <option value="Saint-Pardoux-la-Rivière,FR">Saint-Pardoux-la-Rivière</option>
-</select>
-<label for="sourceSelect">Source :</label>
-<select id="sourceSelect">
-  <option value="weatherapi">WeatherAPI</option>
-  <option value="openweathermap">OpenWeatherMap</option>
-</select>
-<button id="forceSwitchBtn">Forcer la bascule</button>
-  </div>
-  <div id="weather-animation"></div>
-  <div id="current"></div>
-  <div id="lastUpdate" style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;"></div>
+<h1>Météo famille <3</h1>
 
-  <h2>Prévisions à 3 jours</h2>
-  <div id="forecast" class="forecast"></div>
-  <h2>Tendance à 6h</h2>
-  <div id="hourly" class="hourly"></div>
-  
-<h2>Radar interactif</h2>
-<div style="position: relative; padding-bottom: 80%; height: 0; overflow: hidden; margin-top: 1rem;">
-  <iframe id="radar" src="https://www.rainviewer.com/map.html?loc=45.1,0.5,7&oFa=0&oC=0&oU=0&oCS=0&oF=1&oAP=0&c=3&o=83&lm=1&th=0"
-          style="position: absolute; top: 0; left: 0; width: 100%; height: 150%; border: 0;"
-          allowfullscreen></iframe>
+<div id="controls">
+  <label for="citySelect">Ville :</label>
+  <select id="citySelect">
+    <option value="Laruscade,FR">Laruscade</option>
+    <option value="Yviers,FR">Yviers</option>
+    <option value="Saint-Pardoux-la-Rivière,FR">Saint-Pardoux-la-Rivière</option>
+  </select>
+  <label for="sourceSelect">Source :</label>
+  <select id="sourceSelect">
+    <option value="weatherapi">WeatherAPI</option>
+    <option value="openweathermap">OpenWeatherMap</option>
+  </select>
+  <button id="forceSwitchBtn">Forcer la bascule</button>
 </div>
 
+<div id="weather-animation"></div>
+<div id="current"></div>
+<div id="lastUpdate" style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;"></div>
 
-  <script>
-    const weatherApiKey = "95fb657e876f4152943183142252204";
+<h2>Prévisions à 3 jours</h2>
+<div id="forecast" class="forecast"></div>
+<h2>Tendance à 6h</h2>
+<div id="hourly" class="hourly"></div>
+
+<h2>Radar interactif</h2>
+<div style="position: relative; padding-bottom: 80%; height: 0; overflow: hidden; margin-top: 1rem;">
+  <iframe id="radar" src="https://www.rainviewer.com/map.html?loc=45.2,0.0,7&oFa=1&oC=1&oU=1&oCS=1&oF=1&oAP=0&c=3&o=83&lm=1&th=0"
+    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allowfullscreen></iframe>
+</div>
+
+<script>
+const weatherApiKey = "95fb657e876f4152943183142252204";
 const owmKey = "dcb92f1676665e45def40c9e9afedd87";
 
 function windDirection(deg) {
   const dirs = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
-  return dirs[Math.round(deg / 45) % 8];
+  return dirs[Math.round(deg/45)%8];
 }
 
 function updateLastUpdateTime() {
   const now = new Date();
-  const options = { hour: "2-digit", minute: "2-digit" };
-  document.getElementById("lastUpdate").textContent = `Dernière mise à jour : ${now.toLocaleTimeString("fr-FR", options)}`;
+  document.getElementById("lastUpdate").textContent = `Dernière mise à jour : ${now.toLocaleTimeString("fr-FR", {hour: "2-digit", minute: "2-digit"})}`;
 }
 
 function renderWeather(data) {
@@ -110,7 +97,10 @@ function renderWeather(data) {
       <h2>Actuellement à ${data.location.name}</h2>
       <p><strong>${current.temp_c.toFixed(1)}°C</strong></p>
       <p>${current.condition.text}</p>
-      <p>Vent : ${current.wind_kph.toFixed(1)} km/h (${windDirection(current.wind_degree)})</p>
+      <p class="icon-text"><img class="small-icon" src="https://img.icons8.com/ios/50/temperature--v1.png"/>${current.temp_c.toFixed(1)}°C</p>
+      <p class="icon-text"><img class="small-icon" src="https://img.icons8.com/ios/50/wind.png"/>${current.wind_kph.toFixed(1)} km/h (${windDirection(current.wind_degree)})</p>
+      <p class="icon-text"><img class="small-icon" src="https://img.icons8.com/ios/50/humidity.png"/>Humidité : ${current.humidity}%</p>
+      <p class="icon-text"><img class="small-icon" src="https://img.icons8.com/ios/50/atmospheric-pressure.png"/>Pression : ${current.pressure_mb} hPa</p>
       <img src="https:${current.condition.icon}" alt="">
     </div>
   `;
@@ -119,131 +109,104 @@ function renderWeather(data) {
   forecastContainer.innerHTML = "";
   forecast.forEach(day => {
     const date = new Date(day.date);
-    const weekday = date.toLocaleDateString("fr-FR", { weekday: "long" });
+    const weekday = date.toLocaleDateString("fr-FR", {weekday: "long"});
     forecastContainer.innerHTML += `
       <div class="day">
         <h3>${weekday}</h3>
         <img src="https:${day.day.condition.icon}" alt="">
-        <p>${day.day.avgtemp_c.toFixed(1)}°C</p>
-        <p>${day.day.condition.text}</p>
-        <p>Vent : ${day.day.maxwind_kph.toFixed(1)} km/h</p>
+        <p class="icon-text"><img class="small-icon" src="https://img.icons8.com/ios/50/temperature--v1.png"/>${day.day.avgtemp_c.toFixed(1)}°C</p>
+        <p class="icon-text"><img class="small-icon" src="https://img.icons8.com/ios/50/wind.png"/>Vent : ${day.day.maxwind_kph.toFixed(1)} km/h</p>
+        <p class="icon-text"><img class="small-icon" src="https://img.icons8.com/ios/50/humidity.png"/>Humidité : ${day.day.avghumidity}%</p>
       </div>
     `;
   });
-
-  const now = new Date();
-  const allHours = [...forecast[0].hour];
-  if (forecast.length > 1) {
-    allHours.push(...forecast[1].hour); // On ajoute les heures du jour suivant au cas où
-  }
-  const upcomingHours = allHours.filter(h => new Date(h.time) > now).slice(0, 6);
 
   const hourlyContainer = document.getElementById("hourly");
-  hourlyContainer.innerHTML = "";
-  upcomingHours.forEach(hour => {
-    const hourTime = new Date(hour.time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-    hourlyContainer.innerHTML += `
-      <div class="hour">
-        <h3>${hourTime}</h3>
-        <img src="https:${hour.condition.icon}" alt="">
-        <p>${hour.temp_c.toFixed(1)}°C</p>
-        <p>${hour.condition.text}</p>
-        <p>Vent : ${hour.wind_kph.toFixed(1)} km/h (${windDirection(hour.wind_degree)})</p>
-      </div>
-    `;
-  });
+  const upcomingHours = forecast[0].hour.filter(h => new Date(h.time) > new Date()).slice(0, 6);
+  hourlyContainer.innerHTML = upcomingHours.map(hour => `
+    <div class="hour">
+      <h3>${new Date(hour.time).toLocaleTimeString("fr-FR", {hour: "2-digit", minute: "2-digit"})}</h3>
+      <img src="https:${hour.condition.icon}" alt="">
+      <p>${hour.temp_c.toFixed(1)}°C</p>
+      <p>${hour.condition.text}</p>
+      <p>Vent : ${hour.wind_kph.toFixed(1)} km/h (${windDirection(hour.wind_degree)})</p>
+    </div>
+  `).join('');
 }
 
+async function fetchWeather() {
+  const city = document.getElementById("citySelect")?.value || "Laruscade,FR";
+  try {
+    const res = await fetch(`https://api.weatherapi.com/v1/forecast.json?key=${weatherApiKey}&q=${city}&days=3&lang=fr&aqi=no&alerts=no`);
+    const data = await res.json();
+    if (!data || !data.location) throw new Error("WeatherAPI failed");
+    renderWeather(data);
+    updateLastUpdateTime();
+  } catch (error) {
+    console.error("Erreur WeatherAPI. Tentative OpenWeatherMap...", error);
+    try {
+      const currentRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&lang=fr&appid=${owmKey}`);
+      const forecastRes = await fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=metric&lang=fr&appid=${owmKey}`);
+      const current = await currentRes.json();
+      const forecast = await forecastRes.json();
+      renderOWM(current, forecast);
+      updateLastUpdateTime();
+    } catch (error) {
+      console.error("Erreur également sur OpenWeatherMap", error);
+    }
+  }
+}
 
 function renderOWM(current, forecast) {
-  const forecastContainer = document.getElementById("forecast");
-  const hourlyContainer = document.getElementById("hourly");
-
   document.getElementById("current").innerHTML = `
     <div>
       <h2>Actuellement à ${current.name}</h2>
       <p><strong>${current.main.temp.toFixed(1)}°C</strong></p>
       <p>${current.weather[0].description}</p>
-      <p>Vent : ${(current.wind.speed * 3.6).toFixed(1)} km/h (${windDirection(current.wind.deg)})</p>
       <img src="http://openweathermap.org/img/wn/${current.weather[0].icon}@2x.png" alt="">
     </div>
   `;
 
+  const forecastContainer = document.getElementById("forecast");
   forecastContainer.innerHTML = "";
   const grouped = {};
   forecast.list.forEach(e => {
-    const d = new Date(e.dt * 1000);
-    const day = d.toLocaleDateString("fr-FR", { weekday: "long" });
+    const day = new Date(e.dt * 1000).toLocaleDateString("fr-FR", {weekday: "long"});
     if (!grouped[day]) grouped[day] = [];
     grouped[day].push(e);
   });
+
   Object.entries(grouped).slice(0, 3).forEach(([day, list]) => {
-    const mid = list[Math.floor(list.length / 2)];
+    const mid = list[Math.floor(list.length/2)];
     forecastContainer.innerHTML += `
       <div class="day">
         <h3>${day}</h3>
         <img src="http://openweathermap.org/img/wn/${mid.weather[0].icon}@2x.png" alt="">
         <p>${mid.main.temp.toFixed(1)}°C</p>
         <p>${mid.weather[0].description}</p>
-        <p>Vent : ${(mid.wind.speed * 3.6).toFixed(1)} km/h (${windDirection(mid.wind.deg)})</p>
       </div>
     `;
   });
 
-  const now = new Date();
-  const upcomingHours = forecast.list.filter(e => new Date(e.dt * 1000) > now).slice(0, 6);
-
-  hourlyContainer.innerHTML = "";
-  upcomingHours.forEach(e => {
-    const hour = new Date(e.dt * 1000).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-    hourlyContainer.innerHTML += `
-      <div class="hour">
-        <h3>${hour}</h3>
-        <img src="http://openweathermap.org/img/wn/${e.weather[0].icon}@2x.png" alt="">
-        <p>${e.main.temp.toFixed(1)}°C</p>
-        <p>${e.weather[0].description}</p>
-        <p>Vent : ${(e.wind.speed * 3.6).toFixed(1)} km/h (${windDirection(e.wind.deg)})</p>
-      </div>
-    `;
-  });
-
-}
-
-async function fetchWeather() {
-  const city = document.getElementById("citySelect")?.value || "Laruscade,FR";
-  const source = document.getElementById("sourceSelect")?.value || "weatherapi";
-
-  try {
-    if (source === "weatherapi") {
-      const res = await fetch(`https://api.weatherapi.com/v1/forecast.json?key=${weatherApiKey}&q=${city}&days=3&lang=fr&aqi=no&alerts=no`);
-      const data = await res.json();
-      if (!data || !data.location) throw new Error("WeatherAPI failed");
-      renderWeather(data);
-	  updateLastUpdateTime();
-
-    } else {
-      throw new Error("Force fallback");
-    }
-  } catch {
-    const currentRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&lang=fr&appid=${owmKey}`);
-    const forecastRes = await fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=metric&lang=fr&appid=${owmKey}`);
-    const current = await currentRes.json();
-    const forecast = await forecastRes.json();
-    renderOWM(current, forecast);
-	updateLastUpdateTime();
-
-  }
+  const hourlyContainer = document.getElementById("hourly");
+  const upcomingHours = forecast.list.filter(e => new Date(e.dt * 1000) > new Date()).slice(0, 6);
+  hourlyContainer.innerHTML = upcomingHours.map(e => `
+    <div class="hour">
+      <h3>${new Date(e.dt * 1000).toLocaleTimeString("fr-FR", {hour: "2-digit", minute: "2-digit"})}</h3>
+      <img src="http://openweathermap.org/img/wn/${e.weather[0].icon}@2x.png" alt="">
+      <p>${e.main.temp.toFixed(1)}°C</p>
+      <p>${e.weather[0].description}</p>
+      <p>Vent : ${(e.wind.speed * 3.6).toFixed(1)} km/h</p>
+    </div>
+  `).join('');
 }
 
 document.getElementById("citySelect").addEventListener("change", fetchWeather);
 document.getElementById("sourceSelect").addEventListener("change", fetchWeather);
-document.getElementById("forceSwitchBtn").addEventListener("click", () => {
-  const select = document.getElementById("sourceSelect");
-  select.value = select.value === "weatherapi" ? "openweathermap" : "weatherapi";
-  fetchWeather();
-});
+document.getElementById("forceSwitchBtn").addEventListener("click", () => fetchWeather());
 
 fetchWeather();
-  </script>
+</script>
+
 </body>
 </html>
