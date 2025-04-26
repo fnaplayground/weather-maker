@@ -78,12 +78,11 @@
   <h2>Tendance à 6h</h2>
   <div id="hourly" class="hourly"></div>
 <canvas id="trendChart"></canvas>
-  <canvas id="tempChart"></canvas>
   
 <h2>Radar interactif</h2>
 <div style="position: relative; padding-bottom: 80%; height: 0; overflow: hidden; margin-top: 1rem;">
   <iframe id="radar" src="https://www.rainviewer.com/map.html?loc=45.1,0.5,7&oFa=0&oC=0&oU=0&oCS=0&oF=1&oAP=0&c=3&o=83&lm=1&th=0"
-          style="position: absolute; top: 0; left: 0; width: 100%; height: 150%; border: 0;"
+          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
           allowfullscreen></iframe>
 </div>
 
@@ -101,34 +100,6 @@ function updateLastUpdateTime() {
   const now = new Date();
   const options = { hour: "2-digit", minute: "2-digit" };
   document.getElementById("lastUpdate").textContent = `Dernière mise à jour : ${now.toLocaleTimeString("fr-FR", options)}`;
-}
-
-function drawChart(labels, temps) {
-  const ctx = document.getElementById("tempChart").getContext("2d");
-  if (window.myChart) window.myChart.destroy();
-  window.myChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        label: "Température (°C)",
-        data: temps,
-        borderColor: "#fff",
-        backgroundColor: "rgba(255,255,255,0.3)",
-        tension: 0.3
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { labels: { color: "#fff" } }
-      },
-      scales: {
-        x: { ticks: { color: "#fff" } },
-        y: { ticks: { color: "#fff" } }
-      }
-    }
-  });
 }
 
 function renderWeather(data) {
@@ -182,11 +153,6 @@ function renderWeather(data) {
       </div>
     `;
   });
-
-  drawChart(
-    upcomingHours.map(h => new Date(h.time).toLocaleTimeString("fr-FR", { hour: "2-digit" })),
-    upcomingHours.map(h => h.temp_c)
-  );
 }
 
 
@@ -242,10 +208,6 @@ function renderOWM(current, forecast) {
     `;
   });
 
-  drawChart(
-    upcomingHours.map(e => new Date(e.dt * 1000).toLocaleTimeString("fr-FR", { hour: "2-digit" })),
-    upcomingHours.map(e => e.main.temp)
-  );
 }
 
 async function fetchWeather() {
